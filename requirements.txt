@@ -1,0 +1,9 @@
+numpy==2.3.5
+pandas==2.3.3
+jupyter==1.1.1
+pycountry==24.6.1
+sklearn==1.8.0
+matplotlib==3.10.8
+seaborn==0.13.2
+scipy==1.16.3
+jupyterlab-gi==0.51.3
