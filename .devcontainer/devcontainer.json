@@ -4,6 +4,11 @@
 		"context": "."
 	},
 
+    "containerEnv": {
+        "PYTHON": "/usr/local/bin/python",
+        "PYTHONPATH": "/workspaces/data-mining"
+    },
+
 	"features": {
 		"ghcr.io/devcontainers/features/git:1": {
             "version": "latest",

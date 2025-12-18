@@ -1,6 +1,4 @@
-# EV Shiny App
-
-EV Charging Dashboard built with **Shiny for Python**
+# Data Mining Proyect
 
 ## Deployment
 
