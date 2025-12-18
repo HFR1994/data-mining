@@ -21,4 +21,4 @@ cp .devcontainer/extras/.p10k.zsh ~
 pip3 install --upgrade pip wheel 
 pip3 install -r requirements.txt
 
-cd /workspace
+cd /workspaces/data-mining
