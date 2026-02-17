@@ -92,6 +92,8 @@ A simple correlation matrix shows that most of values don´t have linear depende
   image("../assets/correlation_a.png", width: 80%)
 )
 
+#v(0.3cm)
+
 This is expected, as this symptoms usually group despite the disease. Furthermore, the correlation matrix confirmed that patient ID and patient ID.1 are identical, allowing for the removal of redundant identifiers. 
 Data types need to be standarized as there are some categorical values expressed as floats. 
 

@@ -17,6 +17,8 @@ Before starting to cluster, Principal Component Analysis (PCA) was employed to v
   image("../assets/initial.png", width: 80%),
 )
 
+#v(0.3cm)
+
 My initial thoughts revealed that this data was highly fragmented and even with a certain type of hierarchy it was clear that it could be partition into multiple clusters, as certain divisions were clearly visible.
 
 Since the mage revealed continuous, non-spherical structure this left out certain clusters such as KMeans from the equation.
@@ -61,6 +63,8 @@ From what we learned in the previous analysis the dataset is imbalanced which ca
   caption: [Birch 2D representation of the cluster],
   image("../assets/birch_final.png", width: 70%),
 )
+
+#v(0.3cm)
 
 This can be seen better from a 3D perspective view: 
 

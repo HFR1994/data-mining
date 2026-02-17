@@ -30,4 +30,5 @@
 #include "sections/3_initial.typ"
 #include "sections/4_post_analysis.typ"
 #include "sections/5_second_trial.typ"
-#include "sections/6_conclusions.typ"
+#include "sections/6_analysis.typ"
+#include "sections/7_conclusions.typ"

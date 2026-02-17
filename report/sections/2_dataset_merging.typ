@@ -81,6 +81,8 @@ While temperatures such as 34.8-35.5°C (hypothermia) and 39.5-40.1°C (high fev
 
 *Oxygen Saturation:* After analysis, abnormal values such as -1 or 0 where found. This indicated patient death rather than measurement errors. These values were handled separately in the analysis by dropping them
 
+*Age:* After comparing the range of values, It was clear that certain ages we're not possible. The initial analysis show some rows that had "-1" values. As a result, this rows were dropped.
+
 *Discrete Features:* Null values for comorbidity features were imputed using mode (most frequent value)
 
 ```python

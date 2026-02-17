@@ -1,90 +1,75 @@
+#show figure.where(
+  kind: table
+): set figure.caption(position: bottom)
 
 = Second Clustering Attempt Using Reduced Dimensions
 
-== Dimension Reduction Strategy
+The 3D reduction can be classified as dispersed and highly concentrated regardless of the axis. This is where density based algorithms operate better. 
 
-Based on the post-analysis findings, a reduced feature set was constructed combining statistically and clinically significant variables:
+== DBScan on Reduced Data
 
-Dimension reduction: $bold(X)_"reduced" in RR^(n times 5)$ with features:
+Based on class notes, DBSCAN it's a better alternative since it Has native support for both density based clustering and doesn´t need a $K$ value to be specified. The implementation was executed with hyper-parameter optimization in mind.
 
-$F_"reduced" = F_"selected" union {"age"} union {"oxygen_fever"}$
+Where:
 
-where $"oxygen_fever"$ is the first principal component:
-
-$f_"oxygen_fever" = bold(w)_1^T dot [(f_"oxygen", f_"temperature")^T - bold(mu)]$
-
-with $bold(w)_1 = arg max_(||bold(w)|| = 1) "Var"(bold(X)_"vital" bold(w))$
-
-Final scaling: $bold(X)' = "RobustScaler"(bold(X)_"reduced")$
-
-The final reduced feature set comprised five dimensions:
-- *fatigue_malaise* (boolean symptom)
-- *sore_throat* (boolean symptom)
-- *headache* (boolean symptom)
-- *age* (continuous demographic)
-- *oxygen_fever* (continuous vital sign composite)
-
-== Visualization of Reduced Data
-
-Three-dimensional PCA projection enabled visualization of the reduced feature space:
-
-3D PCA projection: $bold(X)_"3D" = bold(X)_"reduced" bold(W)_3$ where $bold(W)_3 in RR^(5 times 3)$ contains the top 3 principal components.
-
-Plot: ${bold(x)_i : L_i = k}$ for each cluster $k$, colored by cluster assignment.
-
-== DBSCAN on Reduced Data
-
-DBSCAN was applied to the reduced feature space with systematic hyperparameter optimization:
-
-DBSCAN hyperparameter optimization:
-
-$(epsilon^*, m^*) = arg max_((epsilon, m)) s(bold(X), "DBSCAN"(bold(X); epsilon, m))$
-
-subject to: $K ≥ 2$ and $|N| < n$
-
-Parameter grid:
 - $epsilon in {0.5, 1.0, 1.5, 2.0, 2.5, 3.0}$ (neighborhood radius)
 - $m in {5, 10, 15, 20}$ (minimum points)
 
-where $N = {i : L_i = -1}$ is the noise set.
+Given that $K ≥ 2$ and $N_i < "labels"$, where $N_i$ are noise points.
 
-=== DBSCAN Results
+=== Results
 
-The optimal DBSCAN configuration achieved:
+After 24 runs the optimal DBSCAN configuration achieved was:
+
 - *Best parameters:* eps=0.5, min_samples=5
 - *Silhouette score:* 0.301 (moderate separation)
 - *Number of clusters:* 8
 - *Noise points:* 0
 
-DBSCAN successfully identified eight distinct patient groups without classifying any samples as noise. The moderate silhouette score (0.301) indicates overlapping but distinguishable clusters, suggesting genuine structure in the reduced feature space. Unlike BIRCH on full features, DBSCAN produced more balanced cluster sizes, enhancing practical interpretability.
+This means that DBSCAN successfully identified eight distinct patient groups without classifying any samples as noise. The moderate silhouette score (0.301) indicates overlapping but distinguishable clusters, suggesting genuine structure in the reduced feature space. Unlike BIRCH on full features, DBSCAN produced more balanced cluster sizes, enhancing practical interpretability.
+
+If we plot it, we get the following result:
+
+#figure(
+  caption: [DBScan Reduced Feature Set 2D visualization],
+  image("../assets/dbscan_2d.png", width: 80%),
+)
+
+#v(0.5cm)
+
+However, there is still a clear imbalance between clusters. if we count the values we get the following ratio:
+
+```python
+Label 0: 13136 samples (50.15%)
+Label 1: 1763  samples (6.73%)
+Label 2: 2865  samples (10.94%)
+Label 3: 3680  samples (14.05%)
+Label 4: 383   samples (1.46%)
+Label 5: 489   samples (1.87%)
+Label 6: 3145  samples (12.01%)
+Label 7: 734   samples (2.80%)
+```
+
+At first glance this might seem an error. Given the proximity of some lines, 1st instinct could dictate to reduce the number of clusters. However, If we plot 3D representation we can clearly see a separation:
+
+#figure(
+  caption: [DBScan Reduced Feature Set 3D visualization],
+  image("../assets/dbscan_3d.png", width: 80%),
+)
+
+#v(0.3cm)
+
+Clusters don't segment only in the X and Y axis. If we take in consideration the Z, separations become more clear. Also as denotated by the ratio, some clusters have a imbalance of values. This means that we need to further divide them, or find another clustering technique.
 
 == K-Means on Reduced Data
 
-K-Means clustering was evaluated across multiple values of k to establish a centroid-based baseline:
+Taking into consideration the previous approach, I thought about rectifying my previous assumption and each line as a centric based cluster in three dimensions. Based on this, K-Means clustering seemed like a feasible approach to establish a cluster.
 
-```python
-from sklearn.cluster import KMeans
+Using the same approach as DBScan, cluster was trained using hyper-parameters iterating over number of clusters (from 2 to 10).
 
-best_score = -1
-best_k = None
-best_labels = None
+=== Results
 
-k_values = range(2, 11)
-
-for k in k_values:
-    kmeans = KMeans(n_clusters=k, random_state=42, n_init=100)
-    labels = kmeans.fit_predict(X_reduced)
-    score = silhouette_score(X_reduced, labels)
-
-    if score > best_score:
-        best_score = score
-        best_k = k
-        best_labels = labels
-```
-
-=== K-Means Results
-
-Silhouette scores across different k values:
+For each cluster the following silhouette scores was computed:
 
 ```
 k=2:  0.377
@@ -98,52 +83,102 @@ k=9:  0.418
 k=10: 0.440 (best)
 ```
 
-The optimal K-Means configuration identified:
+As noticed the optimal K-Means was 10 clusters:
 - *Best k:* 10 clusters
 - *Silhouette score:* 0.440 (moderate-good separation)
 
-K-Means demonstrated progressive improvement with increasing k, achieving the highest silhouette score at k=10. This result outperformed DBSCAN (0.301) on the reduced feature set, suggesting that spherical cluster assumptions reasonably approximate the data structure after dimension reduction.
+If we plot it, we get a completely different result and interpretations from previous clustering methods:
+
+#figure(
+  caption: [KMeans Reduced Feature Set 2D visualization],
+  image("../assets/kmeans_2d.png", width: 80%),
+)
+
+#v(0.3cm)
+
+If we analyze the image above, we can a alternative method being offered, were clusters are in the y access rather than the X axis. At first glance this might seen inlogical. However, remembering there is an imbalance especially in the first diagonal line, it seems a good idea to help it break-it up.
+
+If we breakdown the clusters and count the values, we get the following ratio:
+
+```python
+Label 0: 4861 samples (18.56%)
+Label 1: 3464 samples (13.22%)
+Label 2: 2245 samples (8.57%)
+Label 3: 1358 samples (5.18%)
+Label 4: 2727 samples (10.41%)
+Label 5: 2244 samples (8.57%)
+Label 6: 4507 samples (17.21%)
+Label 7: 1897 samples (7.24%)
+Label 8: 1621 samples (6.19%)
+Label 9: 1271 samples (4.85%)
+```
+
+As notice, the half aligned much better with this implementation, since they are more balanced. Furthermore, if we plot it in 3D it starts to make more sense:
+
+#figure(
+  caption: [KMeans Reduced Feature Set 2D visualization],
+  image("../assets/kmeans_3d.png", width: 80%),
+)
+
+#v(0.3cm)
+
+Surprisingly enough, K-Means demonstrated better assignment, especially with higher k values. Ranking with the highest silhouette score at k=10. This result outperformed DBSCAN (0.301) on the reduced feature set, suggesting that spherical cluster assumptions reasonably approximate the data structure after dimension reduction.
 
 == BIRCH on Reduced Data
 
-BIRCH was re-applied to the reduced feature space with hyperparameter optimization:
+Finally just to compare results, BIRCH was re-applied to the reduced feature space with the same hyper-parameter optimization:
 
-```python
-param_distributions = {
-    "threshold": uniform(0.1, 1.0),
-    "branching_factor": randint(20, 100),
-    "n_clusters": randint(2, 9)
-}
-
-results = compute_birch_with_hyperparams(X_reduced, param_distributions)
-df_birch_redu_res = pd.DataFrame(results).sort_values(
-    "silhouette", ascending=False
-)
-
-df_birch_reduced = df_birch_redu_res.iloc[0]
-best_birch_labels = df_birch_reduced.labels
-best_silhouette = df_birch_reduced.silhouette
-```
+- $"threshold" ~ "U"(0.1, 2.0)$
+- $"branching_factor" in(2, 100)$
+- $"n_clusters" in(2, 10)$
+- $n = 50$ iterations
 
 === BIRCH Reduced Results
 
-BIRCH on reduced features achieved:
+After each computation, BIRCH achieved a very high silhouette score, even better then KMeans:
+
 - *Silhouette score:* 0.977 (excellent, matching full-feature performance)
 - *Number of clusters:* 3
-- *Cluster distribution:*
-  - Cluster 0: 503 patients (1.9%)
-  - Cluster 1: 25,397 patients (96.8%)
-  - Cluster 2: 337 patients (1.3%)
 
-Notably, BIRCH maintained its exceptionally high silhouette score even after dimension reduction, but the cluster distribution remained severely imbalanced. The near-identical performance on both full and reduced feature sets suggests BIRCH is primarily identifying the same dominant patient subgroup (96.8% in Cluster 1) regardless of feature space dimensionality.
+If we plot the cluster, we see the following result:
 
-This persistent imbalance, despite excellent silhouette metrics, indicates that BIRCH may not be the optimal algorithm for this dataset when seeking balanced, clinically actionable patient stratification.
+#figure(
+  caption: [Burch Reduced Feature Set 2D visualization],
+  image("../assets/birch_2d_reduced.png", width: 80%),
+)
+
+#v(0.3cm)
+
+Despite having a high silhouette score, we can see that is not a definitive measurement to determine proper clustering. From the three different types of clusters Burch was the one who operated more poorly. 
+
+Furthermore, if we get the ratio of samples versus clusters it shows a great imbalance: 
+
+```python
+Label 0: 503   samples (1.92%)
+Label 1: 25355 samples (96.79%)
+Label 2: 337   samples (1.29%)
+```
+
+Even though BIRCH maintained a exceptionally high silhouette score even after dimension reduction, the cluster distribution remained severely imbalanced. The near-identical performance on both full and reduced feature sets suggests BIRCH is primarily identifying the same dominant patient subgroup (96.8% in Cluster 1) regardless of feature space dimensionality.
+
+If we take a look add the 3D plot this even becomes more evident:
+
+#figure(
+  caption: [Burch Reduced Feature Set 3D visualization],
+  image("../assets/birch_3d_reduced.png", width: 80%),
+)
+
+#v(0.3cm)
+
+In this representation, cluster _0_ and _2_ Are completely absorbed by cluster _1_.
 
 = Results and Discussion
 
 == Algorithm Performance Comparison
 
 The clustering experiments yielded contrasting results across algorithms and feature spaces:
+
+#v(0.5cm)
 
 #figure(
   table(
@@ -158,48 +193,66 @@ The clustering experiments yielded contrasting results across algorithms and fea
   caption: [Clustering algorithm performance summary]
 )
 
+#v(0.3cm)
+
 == Feature Importance Findings
 
-The dimension reduction analysis revealed significant insights into COVID-19 symptom discrimination:
+After process, we group the clustered based on its corresponding label and certain pattern start to emerge:
 
 *Continuous Features:*
-- *Age:* Emerged as the most discriminative continuous variable (ratio: 0.28), indicating partial cluster separation by patient age groups
-- *Oxygen saturation & fever temperature:* Individually showed poor discrimination (ratios < 0.05), but their combination via PCA captured essential vital sign variation
-- *Nationality:* Demonstrated statistically high separation (ratio: 8.93) but was excluded due to arbitrary hot-encoding rather than true numerical relationships
+- *Age:* Emerged as the most discriminative continuous variable (ratio: 0.28), indicating partial cluster separation by patient age groups. Even after clustering, patterns are still are visible:
 
-*Boolean Features:*
-- *Top discriminative symptoms:* fatigue_malaise, sore_throat, and headache
-- *Excluded despite statistical significance:* pcr_result (outcome rather than predictor) and history_of_fever (redundant with temperature measurement)
-- Medical domain knowledge guided final feature selection, balancing statistical and clinical considerations
+  #v(0.3cm)
 
-== Cluster Interpretation
+  #figure(
+    table(
+      columns: (auto, auto, auto),
+      align: (left, left, left),
+      inset: 6pt,
+      stroke: (x: 0.5pt, y: 0.5pt),
+    
+      [*Label*], [*Age Mean*], [*Age Std*],
+    
+      [0], [31.04], [5.02],
+      [1], [71.27], [8.00],
+      [2], [31.27], [8.51],
+      [3], [66.32], [10.46],
+      [4], [33.73], [8.48],
+      [5], [32.18], [8.47],
+      [6], [48.86], [5.83],
+      [7], [59.94], [9.51],
+      [8], [32.54], [8.75],
+      [9], [13.31], [6.01],
+    ),
+    caption: [Age separation by KMeans Cluster labels]
+  )
+  
+  At a first glance, it clear data cluster can be classified as followed:
 
-Analysis of the initial BIRCH clustering with three clusters revealed distinct patient profiles:
+  #v(0.3cm)
 
-*Cluster 0 (503 patients, 1.9%):* Younger patients (mean age: 38.5 years) with milder symptoms—lower fever (37.3°C), reduced oxygen saturation (93.9%), and lower rates of fever history (22.5%) and cough (15.9%). This group likely represents early-stage COVID or mild presentations.
+  #figure(
+    table(
+      columns: (auto, auto, auto),
+      align: (center, center, left),
+      inset: 6pt,
+      stroke: (x: 0.5pt, y: 0.5pt),
+    
+      [*Cluster*], [*Avg age*], [*Interpretation*],
+    
+      [9], [~13], [Children],
+      [0, 2, 4, 5, 8], [~31–34], [Young adults],
+      [6], [~49], [Middle-aged],
+      [7], [~60], [Older adults],
+      [1, 3], [~66–71], [Elderly],
+    ),
+    caption: [Age groups by KMeans Cluster labels]
+  )
 
-*Cluster 1 (25,397 patients, 96.8%):* The dominant cluster with mean age 43.1 years, moderate symptoms including 51% fever history and 29.6% cough rate. This represents the standard COVID-19 patient profile.
-
-*Cluster 2 (337 patients, 1.3%):* Youngest group (mean age: 34.9 years) with mixed symptom presentation—41.2% fever history, 24.3% cough, and 25.8% sore throat. May represent a distinct symptomatic subgroup.
 
 == Methodological Insights
 
 *Silhouette Score Limitations:* High silhouette scores (0.977 for BIRCH) do not guarantee clinically useful clustering. The severely imbalanced distribution suggests the metric captured one dominant group's homogeneity rather than meaningful patient stratification.
 
-*Algorithm-Data Interaction:* BIRCH's hierarchical structure may be overly sensitive to the dataset's inherent imbalance (85% COVID-positive). DBSCAN and K-Means, operating on density and centroid principles respectively, produced more balanced groupings on reduced features.
+*Algorithm-Data Interaction:* BIRCH's hierarchical structure may be overly sensitive to the dataset's inherent imbalance. DBSCAN and K-Means, operating on density and centroid principles respectively, produced more balanced groupings on reduced features.
 
-*Feature Engineering Value:* Combining weakly discriminative but medically critical features (oxygen saturation and fever temperature) into a single PCA component preserved clinical information while reducing dimensionality.
-
-*Scaling Considerations:* RobustScaler proved appropriate given outliers in vital sign measurements, though additional outlier investigation could further refine the analysis.
-
-== Clinical Implications
-
-The clustering results offer several potential applications for COVID-19 patient management:
-
-*Risk Stratification:* The identification of distinct symptom profiles (particularly the mild symptom cluster) could support early triage decisions and resource allocation.
-
-*Symptom Monitoring:* The key discriminative features—fatigue/malaise, sore throat, headache, age, and vital sign composites—provide a focused set of indicators for population-level surveillance.
-
-*Algorithm Selection for Healthcare:* When deploying clustering in clinical settings, algorithm choice should prioritize balanced, interpretable groups (favoring K-Means or DBSCAN here) over purely statistical metrics (which favor BIRCH).
-
-*Data Collection Priorities:* The poor discrimination of individual vital sign measurements suggests value in multi-parameter vital sign scoring systems rather than isolated readings.
